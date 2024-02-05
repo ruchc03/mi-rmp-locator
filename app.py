@@ -5,8 +5,6 @@ from geopy.exc import GeocoderTimedOut
 import json
 import pandas as pd
 
-
-
 app = Flask(__name__)
 
 # Load the restaurant data from the provided JSON-like format
@@ -33,7 +31,8 @@ def geocode_with_retry(address):
     for _ in range(max_retries):
         try:
             location = geolocator.geocode(address, timeout=10)
-            return location
+            if location and location.latitude is not None and location.longitude is not None:
+                return location
         except GeocoderTimedOut:
             continue
     raise Exception("Geocoding failed after multiple retries.")
@@ -64,6 +63,9 @@ def calculate_distance_route():
         
         df['Distance'] = df.apply(lambda row: calculate_distance((user_location.latitude, user_location.longitude),
                                                                 (row['Latitude'], row['Longitude'])), axis=1)
+        df = df.dropna(subset=['Distance'])  # Remove rows with NaN distances
+        df = df[(df['Latitude'].notna()) & (df['Longitude'].notna())]  # Remove rows with invalid coordinates
+        df = df[(df['Latitude'] >= -90) & (df['Latitude'] <= 90) & (df['Longitude'] >= -180) & (df['Longitude'] <= 180)]  # Remove rows with invalid coordinates
         df_sorted = df.sort_values(by='Distance')
         return render_template('index.html', restaurants=df_sorted.to_html(classes='table table-striped', index=False))
     else:
