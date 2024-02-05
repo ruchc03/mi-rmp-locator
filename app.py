@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
 from geopy.distance import geodesic
-from geopy.geocoders import Nominatim
+from geopy.geocoders import Nominatim, GeocoderTimedOut
 import json
 import pandas as pd
 
@@ -23,11 +23,22 @@ def validate_address(address):
     location = geolocator.geocode(address)
     return location is not None
 
+# Function to geocode restaurant addresses and store the coordinates with retry mechanism
+def geocode_with_retry(address):
+    geolocator = Nominatim(user_agent="geoapi")
+    max_retries = 3
+    for _ in range(max_retries):
+        try:
+            location = geolocator.geocode(address, timeout=10)
+            return location
+        except GeocoderTimedOut:
+            continue
+    raise Exception("Geocoding failed after multiple retries.")
+
 # Function to geocode restaurant addresses and store the coordinates
 def geocode_restaurant_addresses():
-    geolocator = Nominatim(user_agent="geoapi")
     for index, row in df.iterrows():
-        location = geolocator.geocode(row['Address'])
+        location = geocode_with_retry(row['Address'])
         if location:
             df.at[index, 'Latitude'] = location.latitude
             df.at[index, 'Longitude'] = location.longitude
@@ -43,7 +54,7 @@ def calculate_distance_route():
     user_input = request.form['location_input']
 
     if validate_address(user_input):
-        user_location = Nominatim(user_agent="geoapi").geocode(user_input)
+        user_location = geocode_with_retry(user_input)
         
         if 'Latitude' not in df.columns or 'Longitude' not in df.columns:
             geocode_restaurant_addresses()
