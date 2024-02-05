@@ -4,37 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restaurant Distance Calculator</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
-    <div class="container mt-4">
-        <h2>Restaurant Distance Calculator</h2>
-        <form action="/calculate_distance" method="post" class="form-inline my-3">
-            <label for="location_input" class="mr-2">Enter Location:</label>
-            <input type="text" name="location_input" id="location_input" class="form-control mr-2" required>
-            <button type="submit" class="btn btn-primary">Calculate Distance</button>
-        </form>
+    <h1>Restaurant Distance Calculator</h1>
 
-        {% if error_message %}
-        <div class="alert alert-danger">{{ error_message }}</div>
-        {% endif %}
+    {% if error_message %}
+    <p style="color: red;">{{ error_message }}</p>
+    {% endif %}
 
-        <table class="{{ restaurants | safe }}">
-            <thead>
-                <tr>
-                    <th>Restaurant Name</th>
-                    <th>Phone</th>
-                    <th>Address</th>
-                    <th>City</th>
-                    <th>County</th>
-                    <th>Zip</th>
-                    <th>Distance</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{ restaurants | safe }}
-            </tbody>
-        </table>
-    </div>
+    <form action="/calculate_distance" method="post">
+        <label for="location_input">Enter Location:</label>
+        <input type="text" id="location_input" name="location_input" required>
+        <input type="submit" value="Calculate Distance">
+    </form>
+
+    {% if restaurants %}
+    {{ restaurants|safe }}
+    {% endif %}
 </body>
 </html>
