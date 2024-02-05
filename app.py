@@ -1,8 +1,11 @@
 from flask import Flask, render_template, request
 from geopy.distance import geodesic
-from geopy.geocoders import Nominatim, GeocoderTimedOut
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut
 import json
 import pandas as pd
+
+
 
 app = Flask(__name__)
 
