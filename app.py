@@ -16,7 +16,9 @@ df = pd.DataFrame(restaurants)
 
 # Function to calculate distance between two locations
 def calculate_distance(user_location, restaurant_location):
-    return geodesic(user_location, restaurant_location).miles
+    if restaurant_location is None:
+        return float('inf')  # Assign a large distance if restaurant location is not available
+    return geodesic(user_location, (restaurant_location.latitude, restaurant_location.longitude)).miles
 
 # Function to validate user input as a valid address
 def validate_address(address):
@@ -28,14 +30,16 @@ def validate_address(address):
 def geocode_with_retry(address):
     geolocator = Nominatim(user_agent="geoapi")
     max_retries = 3
-    for _ in range(max_retries):
+    for retry in range(1, max_retries + 1):
         try:
             location = geolocator.geocode(address, timeout=10)
             if location and location.latitude is not None and location.longitude is not None:
                 return location
-        except GeocoderTimedOut:
+        except (GeocoderTimedOut, ValueError):
+            print(f"Geocoding attempt {retry} failed for address: {address}. Retrying...")
             continue
-    raise Exception("Geocoding failed after multiple retries.")
+    print(f"Geocoding failed after {max_retries} retries for address: {address}.")
+    return None
 
 # Function to geocode restaurant addresses and store the coordinates
 def geocode_restaurant_addresses():
@@ -57,15 +61,12 @@ def calculate_distance_route():
 
     if validate_address(user_input):
         user_location = geocode_with_retry(user_input)
-        
+
         if 'Latitude' not in df.columns or 'Longitude' not in df.columns:
             geocode_restaurant_addresses()
-        
+
         df['Distance'] = df.apply(lambda row: calculate_distance((user_location.latitude, user_location.longitude),
                                                                 (row['Latitude'], row['Longitude'])), axis=1)
-        df = df.dropna(subset=['Distance'])  # Remove rows with NaN distances
-        df = df[(df['Latitude'].notna()) & (df['Longitude'].notna())]  # Remove rows with invalid coordinates
-        df = df[(df['Latitude'] >= -90) & (df['Latitude'] <= 90) & (df['Longitude'] >= -180) & (df['Longitude'] <= 180)]  # Remove rows with invalid coordinates
         df_sorted = df.sort_values(by='Distance')
         return render_template('index.html', restaurants=df_sorted.to_html(classes='table table-striped', index=False))
     else:
